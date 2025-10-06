@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiCreateCard, apiDeleteCard, apiGetCardsByUser } from '../api/client';
 
@@ -21,14 +21,16 @@ export default function CardsPage() {
         const data = await apiGetCardsByUser(String(user.id));
         setCards(Array.isArray(data) ? data : []);
       } catch (e) {
-        setError('Failed to load cards');
+        if (e && e.status === 404) {
+          setCards([]);
+        } else {
+          setError('Failed to load cards');
+        }
       } finally {
         setLoading(false);
       }
     })();
   }, [user]);
-
-  const fullNameUpper = useMemo(() => `${(user?.name || '').toUpperCase()} ${(user?.surname || '').toUpperCase()}`.trim(), [user]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -41,10 +43,14 @@ export default function CardsPage() {
       setError('Card number must have 16 digits');
       return;
     }
-    if (holder !== fullNameUpper) {
-      setError(`Holder must be exactly: ${fullNameUpper}`);
+    
+    // Validate the holder name against the specified pattern ONLY.
+    const holderPattern = /^[A-Z]{1,32}\s[A-Z]{1,32}$/;
+    if (!holderPattern.test(holder)) {
+      setError('The holder must contain only uppercase letters and follow the pattern: NAME SURNAME');
       return;
     }
+
     if (!expirationDate) {
       setError('Expiration date is required');
       return;
@@ -62,7 +68,7 @@ export default function CardsPage() {
       const created = await apiCreateCard(String(user.id), payload);
       setCards((prev) => [created, ...prev]);
       setNumber('');
-      setHolder(fullNameUpper);
+      setHolder(''); // Reset to empty string
       setExpirationDate('');
     } catch (e) {
       setError('Failed to add card');
@@ -76,12 +82,9 @@ export default function CardsPage() {
       await apiDeleteCard(String(cardId));
       setCards((prev) => prev.filter((c) => c.id !== cardId));
     } catch (_) {
+      // Errors are ignored for delete
     }
   };
-
-  useEffect(() => {
-    if (!holder && fullNameUpper) setHolder(fullNameUpper);
-  }, [fullNameUpper, holder]);
 
   return (
     <div className="row">
@@ -99,7 +102,7 @@ export default function CardsPage() {
           </div>
           <div className="mb-3">
             <label className="form-label">Holder (NAME SURNAME, uppercase)</label>
-            <input className="form-control" value={holder} onChange={(e) => setHolder(e.target.value)} placeholder={fullNameUpper || 'NAME SURNAME'} />
+            <input className="form-control" value={holder} onChange={(e) => setHolder(e.target.value)} placeholder="NAME SURNAME" />
           </div>
           <div className="mb-3">
             <label className="form-label">Expiration Date</label>
@@ -111,7 +114,7 @@ export default function CardsPage() {
       <div className="col-12 col-lg-6">
         <div className="card p-3 shadow-sm">
           <h5 className="mb-3">Your cards</h5>
-          {cards.length === 0 ? (
+          {!loading && cards.length === 0 ? (
             <div className="text-muted">No cards</div>
           ) : (
             <ul className="list-group">
@@ -131,5 +134,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
-

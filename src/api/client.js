@@ -1,3 +1,4 @@
+// file: ../api/client.js
 
 function detectBaseUrl() {
   if (typeof window === 'undefined') return null;
@@ -89,6 +90,15 @@ async function handleResponse(res) {
   throw error;
 }
 
+export async function apiRefreshToken() {
+  const refreshed = await tryRefresh();
+  if (!refreshed) {
+    throw new Error('Failed to refresh token');
+  }
+  return true;
+}
+// -------------------------
+
 export function apiLogin(email, password) {
   return request('/auth/login', { method: 'POST', body: { email, password } }).then((data) => {
     if (data?.accessToken && data?.refreshToken) setTokens({ access: data.accessToken, refresh: data.refreshToken });
@@ -137,5 +147,3 @@ export function apiDeleteCard(cardId) {
 }
 
 export default request;
-
-
