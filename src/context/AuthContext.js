@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
-import { apiLogin, apiRegister, apiValidateToken, apiGetUserByEmail, apiUpdateUser, clearTokens, setTokens } from '../api/client';
+import React, { createContext, useContext, useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { apiLogin, apiRegister, apiValidateToken, apiGetUserByEmail, apiUpdateUser, clearTokens, setTokens, apiRefreshToken } from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -7,6 +7,38 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const tokenRefreshInterval = useRef(null);
+
+  const logout = useCallback(() => {
+    clearTokens();
+    setIsAuthenticated(false);
+    setUser(null);
+    if (tokenRefreshInterval.current) {
+      clearInterval(tokenRefreshInterval.current);
+      tokenRefreshInterval.current = null;
+    }
+  }, []);
+
+  const startRefreshTokenTimer = useCallback(() => {
+    if (tokenRefreshInterval.current) {
+      clearInterval(tokenRefreshInterval.current);
+    }
+
+    const REFRESH_INTERVAL = 55 * 60 * 1000; 
+
+    tokenRefreshInterval.current = setInterval(async () => {
+      try {
+        console.log('Refreshing token...');
+        await apiRefreshToken();
+        console.log('Token refreshed successfully.');
+      } catch (error) {
+        console.error('Failed to refresh token, logging out:', error);
+        logout();
+      }
+    }, REFRESH_INTERVAL);
+  }, [logout]);
+
 
   useEffect(() => {
     const access = localStorage.getItem('accessToken');
@@ -22,6 +54,7 @@ export function AuthProvider({ children }) {
           const u = await apiGetUserByEmail(validation.email);
           setUser(u);
           setIsAuthenticated(true);
+          startRefreshTokenTimer(); 
         } else {
           clearTokens();
         }
@@ -31,7 +64,13 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     })();
-  }, []);
+
+    return () => {
+      if (tokenRefreshInterval.current) {
+        clearInterval(tokenRefreshInterval.current);
+      }
+    };
+  }, [startRefreshTokenTimer]);
 
   const login = useCallback(async (email, password) => {
     const tokens = await apiLogin(email, password);
@@ -39,20 +78,15 @@ export function AuthProvider({ children }) {
     const profile = await apiGetUserByEmail(email);
     setUser(profile);
     setIsAuthenticated(true);
+    startRefreshTokenTimer();
     return { success: true };
-  }, []);
+  }, [startRefreshTokenTimer]);
 
   const register = useCallback(async (email, password, name, surname, birthDate) => {
     await apiRegister({ email, password, name, surname, birthDate: birthDate || null });
-    await login(email, password);
+    await login(email, password); 
     return { success: true };
   }, [login]);
-
-  const logout = useCallback(() => {
-    clearTokens();
-    setIsAuthenticated(false);
-    setUser(null);
-  }, []);
 
   const updateProfile = useCallback(async (updates) => {
     if (!user?.id) throw new Error('No user');
@@ -71,5 +105,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-
-

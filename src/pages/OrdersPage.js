@@ -39,7 +39,7 @@ export default function OrdersPage() {
       <div className="col-12">
         <h2 className="mb-3">Orders</h2>
       </div>
-с      {loading && (
+      {loading && (
         <>
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="col-12 mb-3">

@@ -27,7 +27,6 @@ export default function RegisterPage() {
       setError('Surname is required');
       return;
     }
-    
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
       setError('Please enter a valid email address');
@@ -55,8 +54,14 @@ export default function RegisterPage() {
       const res = await register(email, password, name, surname, birthDate);
       if (res.success) navigate('/');
     } catch (err) {
-      const msg = (err && err.message) ? err.message : 'Registration failed';
-      setError(msg);
+      
+      if (err && err.status === 400) {
+        setError('This email is already registered. Please use another.');
+      } else {
+
+        const msg = (err && err.message) ? err.message : 'Registration failed';
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +73,7 @@ export default function RegisterPage() {
         <h2 className="mb-3">Register</h2>
         {error && <div className="alert alert-danger">{error}</div>}
         <form onSubmit={handleSubmit} className="card p-3 shadow-sm">
+          
           <div className="mb-3">
             <label className="form-label">Name</label>
             <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} maxLength="32" required />
@@ -103,5 +109,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
-

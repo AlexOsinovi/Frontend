@@ -21,7 +21,15 @@ export default function CardsPage() {
         const data = await apiGetCardsByUser(String(user.id));
         setCards(Array.isArray(data) ? data : []);
       } catch (e) {
-        setError('Failed to load cards');
+      
+        
+        if (e && e.status === 404) {
+          
+          setCards([]);
+        } else {
+          
+          setError('Failed to load cards');
+        }
       } finally {
         setLoading(false);
       }
@@ -111,7 +119,7 @@ export default function CardsPage() {
       <div className="col-12 col-lg-6">
         <div className="card p-3 shadow-sm">
           <h5 className="mb-3">Your cards</h5>
-          {cards.length === 0 ? (
+          {!loading && cards.length === 0 ? ( 
             <div className="text-muted">No cards</div>
           ) : (
             <ul className="list-group">
@@ -131,5 +139,3 @@ export default function CardsPage() {
     </div>
   );
 }
-
-

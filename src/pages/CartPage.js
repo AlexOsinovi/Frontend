@@ -28,7 +28,7 @@ export default function CartPage() {
                     </div>
                     <div className="d-flex align-items-center gap-2">
                       <span className="me-3">${(Number(item.price) * item.quantity).toFixed(2)}</span>
-                      <button className="btn btn-sm btn-danger" onClick={() => removeFromCart(item.id)}>Remove</button>
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => removeFromCart(item.id)}>Remove</button>
                     </div>
                   </li>
                 ))}
@@ -36,7 +36,8 @@ export default function CartPage() {
               <div className="d-flex justify-content-between align-items-center">
                 <strong>Total: ${total}</strong>
                 <div className="d-flex gap-2">
-                  <button className="btn btn-danger" onClick={clearCart}>Clear cart</button>
+                
+                 <button className="btn btn-outline-danger" onClick={clearCart}>Clear cart</button>
                   <Link to="/checkout" className="btn btn-primary">Proceed to Checkout</Link>
                 </div>
               </div>
